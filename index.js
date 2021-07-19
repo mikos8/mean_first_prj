@@ -5,14 +5,23 @@ const mongoose = require('mongoose') // mongodb
 const passport = require('passport');
 const path = require('path');
 const account = require('./routes/account');
+const jwt = require('jsonwebtoken');
 
 const config = require('./config/db')
+const User = require('./models/user')
+
 const app = express();
 const port = 3030;
+
+app.use(passport.initialize())
+app.use(passport.session())
+
+require('./config/passport')(passport);
 //прописываем полный путь относительно этого файла и указываем наименование
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 app.use(bodyParser.json());
+
 //улавливаем события при подключении 
 mongoose.connect(config.db);
 mongoose.connection.on('connected', () => {
@@ -25,8 +34,8 @@ mongoose.connection.on('error', (err) => {
 app.get('/', (req, res) => {
     res.send('Home page website');
 });
+
 // app.use('/account',account )---------------------------------------
-const User = require('./models/user')
 
 app.post('/account/reg', (req, res) => {
     let newUser = new User({
@@ -51,10 +60,46 @@ app.post('/account/reg', (req, res) => {
     res.send('Page Registration');
 });
 
-app.get('/account/auth', (req, res) => {
+app.post('/account/auth', (req, res) => {
     res.send('Page Authorization');
+
+    const login = req.body.login;
+    const password = req.body.password;
+    User.getUserByLogin(login, (err, user) => {
+        if (err) throw err;
+        if (!user) return res.json({
+            success: false,
+            msg: "User not find"
+        })
+        User.comparePass(password, user.password, (err, isMatch) => {
+            if (err) throw err;
+            if (isMatch) {
+                const token = jwt.sign(user,config.secret,{
+                    expireIn:3600 * 24
+                });
+                res.json({
+                    succes:true,
+                    token:"JWT"+token,
+                    user:{
+                        id:user._id,
+                        name:user.name,
+                        login:user.login,
+                        email:user.email
+                    }
+                })
+            } else {
+                return res.json({
+                    success: false,
+                    msg: "User not find"
+                })
+            }
+        });
+    })
+
 });
-app.get('/account/dashboard', (req, res) => {
+app.get('/account/dashboard', passport.authenticate('jwt', {
+    session: false
+}), (req, res) => {
     res.send('User Page');
 });
 /**----------------------------------------------------------------- */
