@@ -1,0 +1,16 @@
+.form-control{
+    margin-left: 30px;
+    width: 35%;
+    border: 1px solid #8686ad;
+    opacity: 0.45;
+    transition: opacity 0.3s ease-in-out;
+    transition: border 0.3s ease-in-out;
+}
+
+.form-control:hover{
+    opacity: 8;
+    border: 1px solid #7f7f96;
+}
+.reg-block{
+    margin-left:100px;
+}
